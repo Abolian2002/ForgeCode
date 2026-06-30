@@ -1,0 +1,24 @@
+[package]
+name = "minicode-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+minicode-config = { workspace = true }
+minicode-history = { workspace = true }
+minicode-prompt = { workspace = true }
+minicode-types = { workspace = true }
+minicode-install = { workspace = true }
+minicode-manage = { workspace = true }
+minicode-mock-model = { workspace = true }
+minicode-permissions = { workspace = true }
+minicode-tools-runtime = { workspace = true }
+minicode-tui = { workspace = true }
+minicode-agent-core = { workspace = true }
+minicode-tool = { workspace = true }
+
+[lints]
+workspace = true

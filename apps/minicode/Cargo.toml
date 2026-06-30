@@ -1,0 +1,18 @@
+[package]
+name = "minicode"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+clap = { workspace = true, features = ["derive"] }
+tokio = { workspace = true, features = ["full"] }
+minicode-config = { workspace = true }
+minicode-core = { workspace = true }
+crossterm = { workspace = true }
+
+[lints]
+workspace = true

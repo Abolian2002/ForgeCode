@@ -1,0 +1,13 @@
+target/
+Cargo.lock
+
+# Editor and tooling
+.DS_Store
+*.rs.bk
+
+.idea
+.codex
+.vscode
+
+# Backup files
+.git.backup.*/

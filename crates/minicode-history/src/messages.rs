@@ -1,0 +1,128 @@
+use std::fs;
+use std::path::Path;
+use std::sync::{Arc, LazyLock, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+use anyhow::Result;
+use minicode_config::{project_session_conversation_path, runtime_store};
+use minicode_types::ChatMessage;
+use serde::{Deserialize, Serialize};
+
+use crate::read_toml_file;
+
+/// Generate a unique session ID with timestamp and UUID
+pub fn generate_session_id() -> String {
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    format!("sess_{:x}_{}", timestamp, uuid::Uuid::new_v4().simple())
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct ConversationFile {
+    messages: Vec<ChatMessage>,
+}
+
+/// 保存会话消息到文件
+pub fn save_session_messages(
+    cwd: impl AsRef<Path>,
+    session_id: &str,
+    messages: &[ChatMessage],
+) -> Result<()> {
+    if messages.is_empty() {
+        return Ok(()); // 不保存没有任何用户输入的会话
+    }
+    let path = project_session_conversation_path(cwd, session_id);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    let payload = ConversationFile {
+        messages: messages.to_vec(),
+    };
+    fs::write(path, format!("{}\n", toml::to_string_pretty(&payload)?))?;
+    Ok(())
+}
+
+/// 从指定会话加载消息
+pub fn load_session_messages(cwd: impl AsRef<Path>, session_id: &str) -> Result<Vec<ChatMessage>> {
+    let path = project_session_conversation_path(cwd, session_id);
+    if !path.exists() {
+        return Err(anyhow::anyhow!("会话不存在: {}", session_id));
+    }
+    let messages: ConversationFile = read_toml_file(path).unwrap_or_default();
+    Ok(messages.messages)
+}
+
+fn persist_runtime_messages(messages: &[ChatMessage]) {
+    let cwd = runtime_store().cwd.clone();
+    let session_id = runtime_store().session_id.clone();
+    let _ = save_session_messages(&cwd, &session_id, messages);
+}
+
+pub fn load_runtime_messages_from_file() -> Vec<ChatMessage> {
+    let cwd = runtime_store().cwd.clone();
+    let session_id = runtime_store().session_id.clone();
+    let path = project_session_conversation_path(cwd, &session_id);
+    let messages: ConversationFile = read_toml_file(path).unwrap_or_default();
+    messages.messages
+}
+
+pub fn runtime_messages() -> Vec<ChatMessage> {
+    get_messages().lock().map(|g| g.clone()).unwrap_or_default()
+}
+
+pub fn runtime_messages_for_context() -> Vec<ChatMessage> {
+    runtime_messages()
+        .into_iter()
+        .filter(ChatMessage::should_include_in_context)
+        .collect()
+}
+
+pub fn runtime_messages_count() -> usize {
+    get_messages().lock().map(|g| g.len()).unwrap_or_default()
+}
+
+/// 将当前内存中的消息持久化到磁盘。
+pub fn persist_current_messages() {
+    let messages = runtime_messages();
+    let persisted: Vec<ChatMessage> = messages
+        .iter()
+        .filter(|msg| msg.should_record())
+        .cloned()
+        .collect();
+    persist_runtime_messages(&persisted);
+}
+
+pub fn clear_runtime_messages() {
+    let arc = get_messages();
+    let mut guard = arc.lock().unwrap_or_else(|e| e.into_inner());
+    guard.clear();
+    // 直接删除会话文件，避免 save_session_messages 跳过空消息导致残留
+    let cwd = runtime_store().cwd.clone();
+    let session_id = runtime_store().session_id.clone();
+    let path = project_session_conversation_path(cwd, &session_id);
+    let _ = fs::remove_file(&path);
+}
+
+pub fn append_runtime_message(message: ChatMessage) {
+    if matches!(message, ChatMessage::System { .. }) {
+        return;
+    }
+    let arc = get_messages();
+    let mut guard = arc.lock().unwrap_or_else(|e| e.into_inner());
+    guard.push(message);
+    let persisted = guard
+        .iter()
+        .filter(|msg| msg.should_record())
+        .cloned()
+        .collect::<Vec<_>>();
+    persist_runtime_messages(&persisted);
+}
+
+static MESSAGES: LazyLock<Arc<Mutex<Vec<ChatMessage>>>> =
+    LazyLock::new(|| Arc::new(Mutex::new(load_runtime_messages_from_file())));
+
+pub fn get_messages() -> Arc<Mutex<Vec<ChatMessage>>> {
+    MESSAGES.clone()
+}

@@ -1,0 +1,92 @@
+name: Sync Multi Implementations / 同步多份实现文档
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  merge-docs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout / 检出代码
+        uses: actions/checkout@v4
+
+      - name: Fetch and Merge / 拉取并合并文档
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # owner/repo
+          REPOS=(
+            "LiuMengxuan04/MiniCode"
+            "QUSETIONS/MiniCode-Python"
+            "harkerhand/MiniCode-rs"
+          )
+
+          OUTPUT_EN="docs/MULTI_IMPL.md"
+          OUTPUT_ZH="docs/MULTI_IMPL.zh-CN.md"
+          NOW_UTC="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+          NOW_UTC8="$(TZ=Asia/Shanghai date '+%Y-%m-%d %H:%M:%S UTC+8')"
+
+          mkdir -p docs
+
+          echo "# Multi-language MiniCode Implementations" > "$OUTPUT_EN"
+          echo "Last updated (UTC / UTC+8): ${NOW_UTC} / ${NOW_UTC8}" >> "$OUTPUT_EN"
+          echo -e "\n---\n" >> "$OUTPUT_EN"
+
+          echo "# MiniCode 的多语言实现" > "$OUTPUT_ZH"
+          echo "最后更新（UTC / UTC+8）: ${NOW_UTC} / ${NOW_UTC8}" >> "$OUTPUT_ZH"
+          echo -e "\n---\n" >> "$OUTPUT_ZH"
+
+          fetch_feature() {
+            local repo="$1"
+            local lang_file="$2"
+            local branch=""
+            local content=""
+
+            for try_branch in main master; do
+              local url="https://raw.githubusercontent.com/${repo}/${try_branch}/${lang_file}"
+              if content=$(curl -fsSL "$url"); then
+                branch="$try_branch"
+                break
+              fi
+            done
+
+            if [[ -n "$branch" ]]; then
+              printf '%s' "$content"
+              return 0
+            fi
+            return 1
+          }
+
+          for REPO in "${REPOS[@]}"; do
+            echo "Fetching from $REPO ..."
+
+            if CONTENT_EN=$(fetch_feature "$REPO" "docs/FEATURE.md"); then
+              echo "## Implementation from $REPO" >> "$OUTPUT_EN"
+              echo "$CONTENT_EN" | sed 's/^# /### /g' >> "$OUTPUT_EN"
+              echo -e "\n\n---\n" >> "$OUTPUT_EN"
+            else
+              echo "Warning: failed to fetch docs/FEATURE.md from $REPO (checked main/master)."
+            fi
+
+            if CONTENT_ZH=$(fetch_feature "$REPO" "docs/FEATURE.zh-CN.md"); then
+              echo "## 来自 $REPO 的实现" >> "$OUTPUT_ZH"
+              echo "$CONTENT_ZH" | sed 's/^# /### /g' >> "$OUTPUT_ZH"
+              echo -e "\n\n---\n" >> "$OUTPUT_ZH"
+            else
+              echo "Warning: failed to fetch docs/FEATURE.zh-CN.md from $REPO (checked main/master)."
+            fi
+          done
+
+      - name: Create Pull Request / 创建 Pull Request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "docs: sync MULTI_IMPL docs (en + zh-CN)"
+          branch: feature/sync-docs
+          title: "Sync MULTI_IMPL docs (en + zh-CN)"
+          body: "Automated update via raw.githubusercontent.com for docs/MULTI_IMPL.md and docs/MULTI_IMPL.zh-CN.md"

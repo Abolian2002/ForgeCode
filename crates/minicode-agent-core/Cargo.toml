@@ -1,0 +1,26 @@
+[package]
+name = "minicode-agent-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+httpdate = { workspace = true }
+minicode-tool = { workspace = true }
+minicode-types = { workspace = true }
+minicode-config = { workspace = true }
+minicode-history = { workspace = true }
+minicode-prompt = { workspace = true }
+rand = { workspace = true }
+reqwest = { workspace = true, features = ["json", "rustls"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["time", "sync"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,26 @@
+[package]
+name = "minicode-tools-runtime"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+async-trait = { workspace = true }
+minicode-background-tasks = { workspace = true }
+minicode-config = { workspace = true }
+minicode-mcp = { workspace = true }
+minicode-permissions = { workspace = true }
+minicode-skills = { workspace = true }
+minicode-tool = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+shell-words = { workspace = true }
+tokio = { workspace = true, features = ["process", "rt", "time"] }
+reqwest = { workspace = true, features = ["rustls"] }
+similar = { workspace = true }
+
+[lints]
+workspace = true

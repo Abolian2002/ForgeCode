@@ -1,0 +1,16 @@
+[package]
+name = "minicode-manage"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+minicode-skills = { workspace = true }
+serde_json = { workspace = true }
+minicode-config = { workspace = true }
+
+[lints]
+workspace = true

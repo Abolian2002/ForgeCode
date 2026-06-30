@@ -1,0 +1,18 @@
+[package]
+name = "minicode-skills"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+dirs = { workspace = true }
+minicode-types = { workspace = true }
+minicode-config = { workspace = true }
+gray_matter = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,18 @@
+[package]
+name = "minicode-permissions"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
+minicode-config = { workspace = true }
+minicode-types = { workspace = true }
+
+[lints]
+workspace = true

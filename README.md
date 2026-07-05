@@ -1,11 +1,11 @@
-# MiniCode Agent
+# ForgeCode
 
 <p align="center">
-  <strong>一个轻量级的终端 AI 编码助手</strong>
+  <strong>一个类 Claude Code 的本地终端 Coding Agent</strong>
 </p>
 
 <p align="center">
-  基于 Rust 实现的 Claude Code 风格 agent，在终端中提供智能代码编写、文件操作与工作流自动化能力。
+  基于 Rust 实现，支持代码仓库理解、文件操作、命令执行、权限审批、上下文压缩、多 Agent 团队协作与长时目标执行。
 </p>
 
 <p align="center">
@@ -17,11 +17,28 @@
 
 ## ✨ 项目简介
 
-MiniCode Agent 是一个面向本地开发工作流的轻量级终端编码助手，灵感来自 Claude Code。它围绕一个简洁的 `model → tool → model` 循环构建：接收用户请求、检查工作区、按需调用工具、在执行危险操作前请求审批，最终在同一个终端会话里返回结果。
+ForgeCode 是一个面向本地开发工作流的终端 Coding Agent，参考 Claude Code 的交互范式，但在此基础上扩展了多 Agent 团队模式和长时自主目标模式。它不是普通聊天机器人，而是能在真实代码仓库中搜索文件、理解上下文、修改代码、运行命令、根据反馈继续修正的工程型 Agent。
 
-整个项目有意保持紧凑，让主控制流、工具模型和 TUI 行为都更容易理解和扩展。
+核心执行方式围绕 `model → tool → model` 闭环展开：模型理解任务并决定下一步工具调用，工具返回真实环境反馈后，模型继续推理、修改和验证，直到完成任务或需要用户介入。
 
 ## 🎯 核心特性
+
+### 类 Claude Code 的终端 Agent 闭环
+- **仓库级代码理解**：支持文件搜索、内容读取、上下文整理和跨文件分析
+- **真实环境操作**：可执行文件修改、命令运行、测试验证等本地开发动作
+- **多轮反馈修复**：根据命令输出、错误日志和工具结果继续调整方案
+
+### `/team` 多 Agent 团队模式
+- **主 Agent 编排**：主 Agent 负责分析任务、拆解阶段、调度子 Agent、汇总结果
+- **任务驱动子 Agent**：每个子 Agent 面向一个具体子任务动态执行，而不是固定死角色
+- **上下文隔离**：子 Agent 独立处理局部任务，降低主上下文噪声
+- **适用场景**：复杂重构、实现 + 测试 + 审查、多模块协作任务
+
+### `/goal` 长时自主执行模式
+- **目标驱动**：用户给出高层目标后，Agent 自动拆解 todo 并持续推进
+- **持续循环**：围绕 Think → Act → Observe → Reflect 的过程自主执行多轮任务
+- **进度持久化**：保存 goal 状态、任务进度和检查点，便于恢复和追踪
+- **风险控制**：通过时间、轮次、连续失败、停滞检测等机制避免失控执行
 
 ### 智能上下文管理
 - **三级渐进式压缩**：Microcompact（清理旧工具结果）→ SnipCompact（安全区间剪枝）→ AutoCompact（模型生成摘要），自动管理长会话的 Token 成本
@@ -50,10 +67,12 @@ MiniCode Agent 是一个面向本地开发工作流的轻量级终端编码助�
 ## 📦 项目结构
 
 ```
-MiniCode-rs/
+ForgeCode/
 ├── apps/minicode/              # 主程序入口
 ├── crates/
 │   ├── minicode-agent-core/    # Agent 循环核心
+│   ├── minicode-team/          # /team 多 Agent 团队模式
+│   ├── minicode-goal/          # /goal 长时目标执行模式
 │   ├── minicode-mcp/           # MCP 协议实现
 │   ├── minicode-skills/        # Skill 发现与加载
 │   ├── minicode-prompt/        # 系统提示词构建
@@ -75,8 +94,8 @@ MiniCode-rs/
 ### 从源码编译
 
 ```bash
-git clone https://github.com/Abolian2002/minicode-agent.git
-cd minicode-agent
+git clone https://github.com/Abolian2002/ForgeCode.git
+cd ForgeCode
 cargo build --release
 ```
 
@@ -116,6 +135,10 @@ export ANTHROPIC_API_KEY="your-api-key"
 | `/skills` | 查看已加载的 Skill |
 | `/mcp` | 查看 MCP Server 状态 |
 | `/permissions` | 查看权限配置 |
+| `/team <task>` | 启动多 Agent 团队协作模式，适合复杂任务拆分、并行处理与结果汇总 |
+| `/goal <objective>` | 启动长时自主目标模式，适合多轮执行、验证和持续推进的大目标 |
+| `/goal --status` | 查看当前 goal 进度 |
+| `/goal --stop` | 停止当前 goal |
 
 ## 🔧 配置
 
@@ -144,7 +167,11 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
 ## 📚 文档
 
 - [架构说明](docs/ARCHITECTURE.md) — 完整的系统架构与数据流
-- [会话存储](docs/jianli.md) — 项目设计说明
+- [多 Agent 团队模式设计](docs/多Agent团队模式设计.md) — `/team` 模式设计说明
+- [team 流程与面试话术](docs/team流程与面试话术.md) — `/team` 流程说明与面试表达
+- [goal 长时自主执行模式设计](docs/goal长时自主执行模式设计.md) — `/goal` 模式设计说明
+- [goal 流程与面试话术](docs/goal流程与面试话术.md) — `/goal` 流程说明与面试表达
+- [SWE-bench 评测流程](docs/SWE-bench评测mini-code流程.md) — 使用 SWE-bench 评测 Agent 的流程说明
 - [Claude Code 设计模式](docs/多%20agent架构.md) — 架构思想参考
 
 ## 🤝 贡献
@@ -157,4 +184,4 @@ args = ["-y", "@modelcontextprotocol/server-filesystem", "."]
 
 ## 🙏 致谢
 
-本项目受 [Claude Code](https://www.anthropic.com/claude-code) 设计思想启发，参考了多个开源项目的实现方式。
+本项目受 [Claude Code](https://www.anthropic.com/claude-code) 设计思想启发，参考了多个开源项目的实现方式，并在此基础上探索多 Agent 协作与长时自主执行能力。

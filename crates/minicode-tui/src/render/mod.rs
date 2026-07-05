@@ -139,6 +139,22 @@ pub(crate) fn render_screen(
             status_info.push_str(" | active=");
             status_info.push_str(active_tool);
         }
+
+        if state.goal_mode_active {
+            if let Some(runner) = &state.goal_runner {
+                status_info.push_str(&format!(
+                    " | 🎯 {}/{} tasks | iter {}/{} | {}",
+                    runner.state.completed_count,
+                    runner.state.total_todos,
+                    runner.state.current_iteration,
+                    runner.state.config.max_iterations,
+                    runner.budget.elapsed_display(),
+                ));
+            } else {
+                status_info.push_str(" | 🎯 Goal mode");
+            }
+        }
+
         status_info.push_str(&if state.context_tokens_estimate > 1000 {
             format!(" | ctx_tokens={}K", state.context_tokens_estimate / 1000)
         } else {

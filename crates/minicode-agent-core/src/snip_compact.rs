@@ -1,10 +1,10 @@
 use minicode_types::ChatMessage;
 
 /// 上下文利用率阈值：低于此值不触发 snip 压缩
-const SNIP_COMPACT_THRESHOLD: f64 = 0.70;
+const DEFAULT_SNIP_COMPACT_THRESHOLD: f64 = 0.70;
 
 /// 目标利用率：压缩后希望达到的利用率
-const SNIP_TARGET_USAGE: f64 = 0.60;
+const DEFAULT_SNIP_TARGET_USAGE: f64 = 0.60;
 
 /// 最少删除消息数
 const SNIP_MIN_MESSAGES_TO_REMOVE: usize = 6;
@@ -413,8 +413,8 @@ fn no_snip_result(messages: Vec<ChatMessage>, tokens_before: usize, reason: &str
 /// Snip 压缩：安全删除中间消息段
 ///
 /// 这是一个确定性的压缩策略，不调用模型：
-/// - 触发阈值：70% 上下文利用率
-/// - 目标利用率：60%
+/// - 触发阈值：默认 70% 上下文利用率（可通过 threshold 参数自定义）
+/// - 目标利用率：默认 60%（可通过 target_usage 参数自定义）
 /// - 识别"安全区间"（不包含文件编辑工具、错误消息的连续消息段）
 /// - 保护规则：保护文件编辑、错误回合、边界消息、未闭合的工具调用
 /// - 选择最大的安全区间进行删除
@@ -422,11 +422,15 @@ fn no_snip_result(messages: Vec<ChatMessage>, tokens_before: usize, reason: &str
 pub fn snip_compact_conversation(
     messages: Vec<ChatMessage>,
     context_utilization: f64,
+    threshold: Option<f64>,
+    target_usage: Option<f64>,
 ) -> SnipCompactResult {
+    let threshold = threshold.unwrap_or(DEFAULT_SNIP_COMPACT_THRESHOLD);
+    let target_usage = target_usage.unwrap_or(DEFAULT_SNIP_TARGET_USAGE);
     let tokens_before = estimate_messages_tokens(&messages);
 
     // 检查阈值
-    if context_utilization < SNIP_COMPACT_THRESHOLD {
+    if context_utilization < threshold {
         return no_snip_result(messages, tokens_before, "below_threshold");
     }
 
@@ -460,7 +464,7 @@ pub fn snip_compact_conversation(
     };
 
     // 计算需要释放的 token 数
-    let target_tokens = (context_utilization * SNIP_TARGET_USAGE * tokens_before as f64) as usize;
+    let target_tokens = (context_utilization * target_usage * tokens_before as f64) as usize;
     let desired_tokens_to_free = SNIP_MIN_TOKENS_TO_FREE.max(tokens_before.saturating_sub(target_tokens));
 
     // 选择删除范围
@@ -553,7 +557,7 @@ mod tests {
     #[test]
     fn test_below_threshold() {
         let messages = vec![make_user("hello"), make_assistant("hi")];
-        let result = snip_compact_conversation(messages, 0.5);
+        let result = snip_compact_conversation(messages, 0.5, None, None);
         assert!(!result.did_snip);
         assert_eq!(result.reason.unwrap(), "below_threshold");
     }
@@ -563,7 +567,7 @@ mod tests {
         let messages: Vec<ChatMessage> = (0..8)
             .flat_map(|i| vec![make_user(&format!("msg{}", i)), make_assistant(&format!("reply{}", i))])
             .collect();
-        let result = snip_compact_conversation(messages, 0.8);
+        let result = snip_compact_conversation(messages, 0.8, None, None);
         assert!(!result.did_snip);
         assert_eq!(result.reason.unwrap(), "too_few_messages");
     }
@@ -580,7 +584,7 @@ mod tests {
         messages.insert(10, make_tool_call("edit_file"));
         messages.insert(11, make_tool_result("edit_file", "edited"));
 
-        let result = snip_compact_conversation(messages, 0.8);
+        let result = snip_compact_conversation(messages, 0.8, None, None);
         // 文件编辑及其附近的消息应该被保护
         if result.did_snip {
             // 检查编辑操作是否被保留
@@ -603,7 +607,7 @@ mod tests {
         messages.insert(10, make_tool_call("run_command"));
         messages.insert(11, make_error_result("run_command"));
 
-        let result = snip_compact_conversation(messages, 0.8);
+        let result = snip_compact_conversation(messages, 0.8, None, None);
         // 错误消息应该被保护
         if result.did_snip {
             let has_error = result.messages.iter().any(|msg| {
@@ -622,7 +626,7 @@ mod tests {
             messages.push(make_assistant(&format!("reply{}", i)));
         }
 
-        let result = snip_compact_conversation(messages, 0.8);
+        let result = snip_compact_conversation(messages, 0.8, None, None);
         if result.did_snip {
             // 应该有 SnipBoundary 消息
             let has_boundary = result

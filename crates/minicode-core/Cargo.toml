@@ -19,6 +19,7 @@ minicode-tools-runtime = { workspace = true }
 minicode-tui = { workspace = true }
 minicode-agent-core = { workspace = true }
 minicode-tool = { workspace = true }
+minicode-team = { workspace = true }
 
 [lints]
 workspace = true

@@ -1,7 +1,7 @@
 use minicode_types::ChatMessage;
 
 /// 上下文利用率阈值：低于此值不触发微压缩
-const MICROCOMPACT_UTILIZATION: f64 = 0.50;
+const DEFAULT_MICROCOMPACT_UTILIZATION: f64 = 0.50;
 
 /// 保留最近 N 条 tool_result 的完整内容
 const KEEP_RECENT_TOOL_RESULTS: usize = 3;
@@ -21,13 +21,18 @@ const CLEAR_MARKER: &str = "[Content cleared to save context space]";
 /// 微压缩：清理旧的 tool_result 内容以节省 token
 ///
 /// 这是一个轻量级的压缩策略，不调用模型，纯本地操作：
-/// - 触发阈值：50% 上下文利用率
+/// - 触发阈值：默认上下文利用率 50%（可通过 threshold 参数自定义）
 /// - 策略：将较旧的 tool_result 消息内容替换为清理标记
 /// - 保留最近 N 条 tool_result 的完整内容
 /// - 仅适用于只读工具（read_file, list_files 等）
-pub fn microcompact(messages: Vec<ChatMessage>, context_utilization: f64) -> Vec<ChatMessage> {
+pub fn microcompact(
+    messages: Vec<ChatMessage>,
+    context_utilization: f64,
+    threshold: Option<f64>,
+) -> Vec<ChatMessage> {
+    let threshold = threshold.unwrap_or(DEFAULT_MICROCOMPACT_UTILIZATION);
     // 低于阈值不触发
-    if context_utilization < MICROCOMPACT_UTILIZATION {
+    if context_utilization < threshold {
         return messages;
     }
 
@@ -114,7 +119,7 @@ mod tests {
             make_tool_result("read_file", "content1"),
             make_tool_result("read_file", "content2"),
         ];
-        let result = microcompact(messages.clone(), 0.3);
+        let result = microcompact(messages.clone(), 0.3, None);
         assert_eq!(result.len(), 2);
         // 不应该被清理
         if let ChatMessage::ToolResult { content, .. } = &result[0] {
@@ -132,7 +137,7 @@ mod tests {
             make_tool_result("read_file", "recent2"),
             make_tool_result("read_file", "recent3"),
         ];
-        let result = microcompact(messages, 0.6);
+        let result = microcompact(messages, 0.6, None);
         assert_eq!(result.len(), 6);
 
         // 前 3 条应该被清理
@@ -169,7 +174,7 @@ mod tests {
             make_tool_result("read_file", "recent2"),
             make_tool_result("read_file", "recent3"),
         ];
-        let result = microcompact(messages, 0.6);
+        let result = microcompact(messages, 0.6, None);
 
         // edit_file 不应该被清理
         if let ChatMessage::ToolResult { content, .. } = &result[0] {
@@ -187,7 +192,7 @@ mod tests {
             make_tool_result("read_file", "recent2"),
             make_tool_result("read_file", "recent3"),
         ];
-        let result = microcompact(messages.clone(), 0.6);
+        let result = microcompact(messages.clone(), 0.6, None);
         // 已经清理过的不应该改变
         assert_eq!(result.len(), 6);
     }

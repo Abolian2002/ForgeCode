@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 
 use minicode_agent_core::AgentTurnCallbacks;
+use minicode_goal::GoalRunner;
 use minicode_permissions::{PermissionPromptRequest, PermissionPromptResult};
+use minicode_team::TeamOrchestrator;
 use minicode_tool::ToolResult;
 use tokio::sync::{mpsc, oneshot};
 
@@ -45,6 +47,60 @@ pub(crate) enum TurnEvent {
     },
     Done,
     ToolDone(ToolResult),
+    TeamPhaseStart {
+        phase: usize,
+        total: usize,
+    },
+    TeamSubTaskStart {
+        task_id: String,
+        name: String,
+        description: String,
+    },
+    TeamSubTaskComplete {
+        task_id: String,
+        name: String,
+        success: bool,
+        summary: String,
+    },
+    TeamProgress(String),
+    TeamComplete(String),
+    GoalStart {
+        goal_id: String,
+        objective: String,
+    },
+    GoalPlanReady {
+        total: usize,
+        plan_text: String,
+    },
+    GoalTaskStart {
+        task_id: String,
+        title: String,
+        iteration: usize,
+    },
+    GoalTaskComplete {
+        task_id: String,
+        success: bool,
+        summary: String,
+    },
+    GoalProgress(String),
+    GoalCheckpoint {
+        iteration: usize,
+    },
+    GoalStallDetected {
+        reason: String,
+    },
+    GoalBudgetWarning(String),
+    GoalComplete {
+        summary: String,
+    },
+    GoalFailed {
+        reason: String,
+    },
+    GoalPaused(String),
+    GoalCancelled,
+    GoalBudgetExceeded {
+        reason: String,
+    },
 }
 
 #[derive(Default)]
@@ -73,6 +129,22 @@ pub(crate) struct ScreenState {
     pub(crate) stream_text: String,
     /// 为防止乱序回退：最终消息落地后冻结流式增量，忽略迟到 chunk
     pub(crate) stream_frozen: bool,
+    /// 团队模式编排器
+    pub(crate) team_orchestrator: Option<TeamOrchestrator>,
+    /// 团队模式状态信息
+    pub(crate) team_status: Option<String>,
+    /// 是否在团队模式中（等待确认或执行中）
+    pub(crate) team_mode_active: bool,
+    /// 待执行的团队任务（用户输入 /team 后的任务描述）
+    pub(crate) pending_team_task: Option<String>,
+    /// Goal 模式运行器
+    pub(crate) goal_runner: Option<GoalRunner>,
+    /// 是否在 goal 模式中
+    pub(crate) goal_mode_active: bool,
+    /// 当前 goal 任务 ID（正在执行的子任务）
+    pub(crate) goal_current_task_id: Option<String>,
+    /// goal 中断标记
+    pub(crate) goal_interrupted: bool,
 }
 
 pub(crate) struct ChannelCallbacks {

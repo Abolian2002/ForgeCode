@@ -19,6 +19,8 @@ minicode-prompt = { workspace = true }
 minicode-tool = { workspace = true }
 minicode-config = { workspace = true }
 minicode-types = { workspace = true }
+minicode-team = { workspace = true }
+minicode-goal = { workspace = true }
 ratatui = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time"] }

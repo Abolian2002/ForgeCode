@@ -106,7 +106,7 @@ pub async fn run_agent_turn(
         let utilization = estimated as f64 / context_window as f64;
 
         // 1. 先尝试 microcompact（轻量级，不调用模型，清理旧 tool_result）
-        let messages_after_micro = microcompact(messages_before.clone(), utilization);
+        let messages_after_micro = microcompact(messages_before.clone(), utilization, None);
         if messages_after_micro.len() < messages_before.len()
             || messages_after_micro
                 .iter()
@@ -122,7 +122,7 @@ pub async fn run_agent_turn(
             .iter()
             .any(|m| matches!(m, ChatMessage::SnipBoundary { .. }));
         if !has_snip_boundary && utilization >= 0.70 {
-            let snip_result = snip_compact_conversation(messages_after_micro.clone(), utilization);
+            let snip_result = snip_compact_conversation(messages_after_micro.clone(), utilization, None, None);
             if snip_result.did_snip {
                 if let Some(cb) = callbacks.as_deref_mut() {
                     cb.on_compact_start();
@@ -403,7 +403,7 @@ pub async fn run_agent_turn_streaming(
         let utilization = estimated as f64 / context_window as f64;
 
         // 1. 先尝试 microcompact（轻量级，不调用模型，清理旧 tool_result）
-        let messages_after_micro = microcompact(messages_before.clone(), utilization);
+        let messages_after_micro = microcompact(messages_before.clone(), utilization, None);
         if messages_after_micro.len() < messages_before.len()
             || messages_after_micro
                 .iter()
@@ -419,7 +419,7 @@ pub async fn run_agent_turn_streaming(
             .iter()
             .any(|m| matches!(m, ChatMessage::SnipBoundary { .. }));
         if !has_snip_boundary && utilization >= 0.70 {
-            let snip_result = snip_compact_conversation(messages_after_micro.clone(), utilization);
+            let snip_result = snip_compact_conversation(messages_after_micro.clone(), utilization, None, None);
             if snip_result.did_snip {
                 if let Some(cb) = callbacks.as_deref_mut() {
                     cb.on_compact_start();

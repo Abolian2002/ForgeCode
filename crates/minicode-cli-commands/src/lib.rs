@@ -445,6 +445,61 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
             })
         },
     },
+    SlashCommand {
+        prefix: "/team ",
+        usage: "/team <task>",
+        description: "启动多 Agent 团队模式来处理复杂任务。",
+        handler: |_| {
+            Box::pin(async move {
+                Ok("团队模式请直接在 TUI 中输入 /team <任务描述> 使用。例如: /team 重构 user 模块并添加测试".to_string())
+            })
+        },
+    },
+    SlashCommand {
+        prefix: "/team:continue",
+        usage: "/team:continue",
+        description: "基于上一轮团队结果继续执行（开发中）。",
+        handler: |_| {
+            Box::pin(async move {
+                Ok("/team:continue 功能正在开发中，当前版本 /team 执行完毕即结束一轮。".to_string())
+            })
+        },
+    },
+    SlashCommand {
+        prefix: "/goal ",
+        usage: "/goal <objective>",
+        description: "🎯 启动长时自主执行模式（Goal），Agent连续工作数小时自主达成目标。",
+        handler: |input| {
+            let rest = input.trim_start_matches("/goal").trim().to_string();
+            Box::pin(async move {
+                if rest.is_empty() || rest == "--help" || rest == "-h" {
+                    Ok("🎯 /goal - 长时自主执行模式\n\n\
+                         用法:\n\
+                         \u{0020} /goal <目标描述>          启动goal模式\n\
+                         \u{0020} /goal --yolo <目标>      自动批准文件编辑\n\
+                         \u{0020} /goal --auto <目标>      完全自动批准（白名单内）\n\
+                         \u{0020} /goal --max-hours 8 <目标> 设置最大时长\n\
+                         \u{0020} /goal --max-iters 500 <目标> 设置最大迭代轮次\n\
+                         \u{0020} /goal --list            列出最近的goals\n\
+                         \u{0020} /goal --status          查看当前goal状态\n\
+                         \u{0020} /goal --stop            停止当前goal\n\n\
+                         示例: /goal 将项目错误处理统一迁移到anyhow".to_string())
+                } else {
+                    Ok("Goal模式请在TUI交互界面中使用，直接输入 /goal <目标描述> 即可启动。".to_string())
+                }
+            })
+        },
+    },
+    SlashCommand {
+        prefix: "/goal",
+        usage: "/goal [options]",
+        description: "🎯 长时自主执行模式管理（list/status/stop）。输入 /goal --help 查看帮助。",
+        handler: |_| {
+            Box::pin(async move {
+                Ok("Goal模式管理命令。输入 /goal --help 查看完整帮助，或直接用 /goal <目标> 启动。".to_string())
+            })
+        },
+    },
 ];
 
 /// 格式化所有内置斜杠命令的帮助文本。

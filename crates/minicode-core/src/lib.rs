@@ -10,3 +10,4 @@ pub use minicode_tool::*;
 pub use minicode_tools_runtime::*;
 pub use minicode_tui::*;
 pub use minicode_types::*;
+pub use minicode_team::*;

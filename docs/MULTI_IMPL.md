@@ -1,5 +1,5 @@
 # Multi-language MiniCode Implementations
-Last updated (UTC / UTC+8): 2026-04-07 12:07:03 UTC / 2026-04-07 20:07:03 UTC+8
+Last updated (UTC / UTC+8): 2026-11-07 03:30:23 UTC / 2026-11-07 11:30:23 UTC+8
 
 ---
 
